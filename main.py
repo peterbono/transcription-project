@@ -19,20 +19,26 @@ def transcribe():
 
     # Sauvegarder temporairement le fichier
     file_path = "temp_audio.wav"
-    audio_file.save(file_path)
-
-    # Transcrire l'audio
-    recognizer = sr.Recognizer()
     try:
+        audio_file.save(file_path)
+
+        # Transcrire l'audio
+        recognizer = sr.Recognizer()
         with sr.AudioFile(file_path) as source:
             audio_data = recognizer.record(source)
             transcription = recognizer.recognize_google(audio_data, language="fr-FR")
-        os.remove(file_path)  # Supprimer le fichier temporaire après utilisation
+
+        # Supprimer le fichier temporaire après utilisation
+        os.remove(file_path)
         return jsonify({"transcription": transcription})
+
     except Exception as e:
-        os.remove(file_path)  # Supprimer le fichier temporaire en cas d'erreur
-        return jsonify({"error": str(e)}), 500
+        # Supprimer le fichier temporaire en cas d'erreur
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 # Point d'entrée principal pour Gunicorn
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Debug est désactivé en production
+    app.run(host="0.0.0.0", port=5000)
