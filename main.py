@@ -61,7 +61,7 @@ def handle_webhook():
     data = request.get_json()
     
     # Affiche les données reçues pour le debug
-    print(data)
+    print("Données reçues :", data)
     
     # Vérifie les messages reçus
     if "entry" in data:
@@ -76,19 +76,22 @@ def handle_webhook():
                             # Télécharge et traite l'audio
                             try:
                                 response = requests.get(audio_url)
-                                with open("temp_audio.mp3", "wb") as audio_file:
+                                audio_file_path = "temp_audio.mp3"
+                                with open(audio_file_path, "wb") as audio_file:
                                     audio_file.write(response.content)
 
                                 # Envoie l'audio au service de transcription
-                                files = {'audio': open("temp_audio.mp3", "rb")}
-                                transcribe_response = requests.post(
-                                    "https://transcription-project-91w7.onrender.com/transcribe",
-                                    files=files
-                                )
-                                print(transcribe_response.json())
+                                with open(audio_file_path, "rb") as audio_file:
+                                    files = {'audio': audio_file}
+                                    transcribe_response = requests.post(
+                                        "https://transcription-project-91w7.onrender.com/transcribe",
+                                        files=files
+                                    )
+                                
+                                print("Réponse transcription :", transcribe_response.json())
 
                                 # Supprime le fichier local
-                                os.remove("temp_audio.mp3")
+                                os.remove(audio_file_path)
 
                             except Exception as e:
                                 print(f"Erreur lors du traitement de l'audio : {str(e)}")
