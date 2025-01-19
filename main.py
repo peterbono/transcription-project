@@ -12,6 +12,9 @@ def index():
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
+    """
+    Endpoint pour la transcription d'un fichier audio
+    """
     # Vérifiez si un fichier audio a été envoyé dans la requête
     if "audio" not in request.files:
         return jsonify({"error": "No audio file found"}), 400
@@ -88,14 +91,47 @@ def handle_webhook():
                                         files=files
                                     )
                                 
-                                print("Réponse transcription :", transcribe_response.json())
+                                transcription_result = transcribe_response.json()
+                                print("Réponse transcription :", transcription_result)
 
                                 # Supprime le fichier local
                                 os.remove(audio_file_path)
 
+                                # Envoie une réponse automatique à l'utilisateur
+                                if "transcription" in transcription_result:
+                                    send_message(
+                                        message["sender"]["id"],
+                                        transcription_result["transcription"]
+                                    )
+                                else:
+                                    send_message(
+                                        message["sender"]["id"],
+                                        "Désolé, je n'ai pas pu transcrire le fichier audio."
+                                    )
+
                             except Exception as e:
                                 print(f"Erreur lors du traitement de l'audio : {str(e)}")
+                                send_message(
+                                    message["sender"]["id"],
+                                    "Une erreur est survenue lors du traitement de l'audio."
+                                )
     return "Événement reçu", 200
+
+def send_message(recipient_id, message_text):
+    """
+    Envoie un message à l'utilisateur via l'API Messenger
+    """
+    page_access_token = "EAAE9Dm2uyncBOz1YxvdNa1WPTYKqDdJkUeysm7xv09ZCHETifHfZA3ZAvnSdFN4AW6wAEQ53JIYp6P1ax1t4PSpZBCAEgh4nGqR98ZBOQw3r5rgkKMfTy3PyxAMS7b9U6ZBZAWH5WATgImkWOT8tVT8DYO1HcCQP0zfdGEyjHd8Qgk88EDTSzHoCaJD7foj23UZD"
+    url = "https://graph.facebook.com/v11.0/me/messages"
+    params = {"access_token": page_access_token}
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {"text": message_text}
+    }
+
+    response = requests.post(url, params=params, headers=headers, json=data)
+    print("Réponse envoi message :", response.json())
 
 # Point d'entrée principal pour Gunicorn
 if __name__ == "__main__":
