@@ -26,13 +26,13 @@ def convert_audio(file_path, target_format="wav"):
     return converted_path
 
 def transcribe_long_audio(file_path):
-    """Transcrit un fichier audio en segments de 5 secondes pour éviter le timeout."""
+    """Transcrit un fichier audio en segments de 3 secondes pour éviter le timeout."""
     recognizer = sr.Recognizer()
     transcript = ""
     with sr.AudioFile(file_path) as source:
         while True:
             try:
-                audio_data = recognizer.record(source, duration=5)  # Segmentation 5s
+                audio_data = recognizer.record(source, duration=3)  # Segmentation 3s
                 if not audio_data.frame_data:
                     break
                 logging.debug("Envoi de l'audio à Google Speech API...")
@@ -70,12 +70,17 @@ def transcribe():
     try:
         ensure_ffmpeg_installed()  # Vérifier si ffmpeg est installé
         
-        # Convertir en WAV si nécessaire
+        # Convertir en WAV si nécessaire et réduire la qualité pour optimisation
         if file_extension != "wav":
             file_path = convert_audio(file_path)
+        audio = AudioSegment.from_file(file_path)
+        audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
+        audio.export(file_path, format="wav")
         
         # Transcrire l'audio
+        logging.debug("Début de la transcription pour le fichier : %s", file_path)
         transcription = transcribe_long_audio(file_path)
+        logging.debug("Transcription terminée : %s", transcription)
         
         # Supprimer le fichier temporaire
         os.remove(file_path)
