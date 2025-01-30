@@ -1,56 +1,74 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
-from pydub import AudioSegment
 import speech_recognition as sr
+import subprocess
+import logging
 
-def transcribe_long_audio(file_path):
-    recognizer = sr.Recognizer()
-    audio = AudioSegment.from_file(file_path)
-    duration = len(audio) // 1000  # duration in seconds
-
-    if duration > 60:  # Split audio if longer than 60 seconds
-        chunks = make_chunks(audio, 60000)
-        transcription = ""
-        for i, chunk in enumerate(chunks):
-            chunk_name = f"chunk{i}.wav"
-            chunk.export(chunk_name, format="wav")
-            with sr.AudioFile(chunk_name) as source:
-                audio_data = recognizer.record(source)
-                transcription += recognizer.recognize_google(audio_data, language="fr-FR") + " "
-            os.remove(chunk_name)
-    else:
-        with sr.AudioFile(file_path) as source:
-            audio_data = recognizer.record(source)
-            transcription = recognizer.recognize_google(audio_data, language="fr-FR")
-
-    return transcription
-
-def make_chunks(audio, chunk_length):
-    return [audio[i:i + chunk_length] for i in range(0, len(audio), chunk_length)]
+# Configuration de la journalisation
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/transcribe', methods=['POST'])
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def transcribe_long_audio(file_path):
+    recognizer = sr.Recognizer()
+    transcription = ""
+    try:
+        with sr.AudioFile(file_path) as source:
+            audio = recognizer.record(source)
+            duration = source.DURATION
+
+            if duration > 60:
+                transcription = "Fichier trop long. Veuillez utiliser un fichier de moins de 60 secondes."
+            else:
+                transcription = recognizer.recognize_google(audio, language="fr-FR")
+    except sr.UnknownValueError:
+        transcription = "Impossible de reconnaître la voix. Essayez un autre fichier."
+    except sr.RequestError as e:
+        transcription = f"Erreur de la requête API Google Speech; {e}"
+    except Exception as e:
+        transcription = f"Une erreur inattendue s'est produite : {e}"
+
+    return transcription
+
+@app.route("/transcribe", methods=["POST"])
 def transcribe():
-    if 'file' not in request.files:
+    if "file" not in request.files:
         return jsonify({"error": "No audio file found"}), 400
 
-    file = request.files['file']
-    if file.filename == '':
+    audio_file = request.files["file"]
+
+    if audio_file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
-    file_path = os.path.join("temp_audio.wav")
-    file.save(file_path)
+    file_path = os.path.join(UPLOAD_FOLDER, audio_file.filename)
+    audio_file.save(file_path)
 
+    # Conversion du fichier MP4 en WAV
+    wav_file_path = os.path.splitext(file_path)[0] + ".wav"
     try:
-        transcription = transcribe_long_audio(file_path)
-        os.remove(file_path)
-        return jsonify({"message": transcription}), 200
-    except Exception as e:
-        os.remove(file_path)
-        return jsonify({"error": str(e)}), 500
+        subprocess.run([
+            "ffmpeg", "-i", file_path, "-ac", "1", "-ar", "16000", wav_file_path
+        ], check=True)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+        transcription = transcribe_long_audio(wav_file_path)
+
+        # Suppression des fichiers temporaires
+        os.remove(file_path)
+        os.remove(wav_file_path)
+
+        return jsonify({"transcription": transcription})
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Erreur lors de la conversion avec ffmpeg : {e}")
+        return jsonify({"error": "Audio conversion failed"}), 500
+    except Exception as e:
+        logging.error(f"Erreur inattendue : {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
