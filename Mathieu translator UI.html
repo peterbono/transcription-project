@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathieu Translator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            border-radius: 15px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1);
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 10px;
+            background-color: #222;
+            color: white;
+        }
+        button {
+            background-color: #5A67D8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #4C51BF;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #2D3748;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mathieu Translator</h1>
+        <p>Upload your MP4 file to get the transcription</p>
+        <input type="file" id="fileInput" accept="video/mp4">
+        <button onclick="uploadFile()">Translate</button>
+        <div class="result" id="result">Transcription will appear here...</div>
+    </div>
+    <script>
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('result');
+            
+            if (fileInput.files.length === 0) {
+                alert("Please select a file first!");
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append("audio", file);
+            
+            resultDiv.innerHTML = "Processing...";
+            
+            fetch("https://transcription-project-91w7.onrender.com/transcribe", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.transcription) {
+                    resultDiv.innerHTML = `<p>${data.transcription}</p>`;
+                } else {
+                    resultDiv.innerHTML = `<p style='color: red;'>Error: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<p style='color: red;'>Request failed</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
