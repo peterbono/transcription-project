@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify
 import os
 import speech_recognition as sr
 import logging
-from pydub import AudioSegment
 import subprocess
+from pydub import AudioSegment
 
 # Vérifier et installer ffmpeg si nécessaire
 def ensure_ffmpeg_installed():
@@ -20,23 +20,25 @@ logging.basicConfig(filename="error.log", level=logging.ERROR,
                     format="%(asctime)s - %(levelname)s - %(message)s")
 
 def convert_audio(file_path, target_format="wav"):
-    """Convertit un fichier audio en WAV pour la transcription."""
+    """Convertit un fichier audio en WAV avec ffmpeg."""
     converted_path = file_path.rsplit(".", 1)[0] + ".wav"
-    audio = AudioSegment.from_file(file_path)
-    audio.export(converted_path, format=target_format)
+    os.system(f"ffmpeg -i {file_path} -ar 16000 -ac 1 -ab 192k {converted_path} -y")
     return converted_path
 
 def transcribe_long_audio(file_path):
-    """Transcrit un fichier audio en le découpant en segments de 30s."""
+    """Transcrit un fichier audio en segments de 10 secondes pour éviter le timeout."""
     recognizer = sr.Recognizer()
+    transcript = ""
     with sr.AudioFile(file_path) as source:
-        transcript = ""
         while True:
             try:
-                audio_data = recognizer.record(source, duration=30)
+                audio_data = recognizer.record(source, duration=10)  # Segmentation 10s
                 if not audio_data.frame_data:
                     break
-                transcript += recognizer.recognize_google(audio_data, language="fr-FR") + " "
+                print("Envoi de l'audio à Google Speech API...")
+                part_transcript = recognizer.recognize_google(audio_data, language="fr-FR")
+                print("Réponse reçue :", part_transcript)
+                transcript += part_transcript + " "
             except sr.UnknownValueError:
                 transcript += "[Inaudible] "
             except sr.RequestError as e:
@@ -82,7 +84,7 @@ def transcribe():
             os.remove(file_path)
         return jsonify({"error": f"Erreur inattendue: {str(e)}"}), 500
 
-# Point d'entrée principal
+# Point d'entrée principal avec timeout augmenté
 if __name__ == "__main__":
     from waitress import serve
     print("Serveur en cours d'exécution...")
