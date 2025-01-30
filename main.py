@@ -16,7 +16,7 @@ def ensure_ffmpeg_installed():
 app = Flask(__name__)
 
 # Configuration des logs
-logging.basicConfig(filename="error.log", level=logging.ERROR,
+logging.basicConfig(filename="error.log", level=logging.DEBUG,
                     format="%(asctime)s - %(levelname)s - %(message)s")
 
 def convert_audio(file_path, target_format="wav"):
@@ -26,23 +26,26 @@ def convert_audio(file_path, target_format="wav"):
     return converted_path
 
 def transcribe_long_audio(file_path):
-    """Transcrit un fichier audio en segments de 10 secondes pour éviter le timeout."""
+    """Transcrit un fichier audio en segments de 5 secondes pour éviter le timeout."""
     recognizer = sr.Recognizer()
     transcript = ""
     with sr.AudioFile(file_path) as source:
         while True:
             try:
-                audio_data = recognizer.record(source, duration=10)  # Segmentation 10s
+                audio_data = recognizer.record(source, duration=5)  # Segmentation 5s
                 if not audio_data.frame_data:
                     break
-                print("Envoi de l'audio à Google Speech API...")
+                logging.debug("Envoi de l'audio à Google Speech API...")
                 part_transcript = recognizer.recognize_google(audio_data, language="fr-FR")
-                print("Réponse reçue :", part_transcript)
+                logging.debug("Réponse reçue : %s", part_transcript)
                 transcript += part_transcript + " "
             except sr.UnknownValueError:
                 transcript += "[Inaudible] "
             except sr.RequestError as e:
                 transcript += f"[Erreur API: {str(e)}] "
+            except Exception as e:
+                logging.error(f"Erreur pendant la transcription : {e}")
+                transcript += "[Erreur de transcription] "
     return transcript.strip()
 
 @app.route("/")
