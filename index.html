@@ -76,8 +76,14 @@
                 method: "POST",
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log("API response:", data);
                 if (data.transcription) {
                     resultDiv.innerHTML = `<p>${data.transcription}</p>`;
                 } else {
@@ -85,7 +91,8 @@
                 }
             })
             .catch(error => {
-                resultDiv.innerHTML = `<p style='color: red;'>Request failed</p>`;
+                console.error("Fetch error:", error);
+                resultDiv.innerHTML = `<p style='color: red;'>Request failed: ${error.message}</p>`;
             });
         }
     </script>
