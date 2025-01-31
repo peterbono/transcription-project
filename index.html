@@ -123,6 +123,15 @@
             </button>
 
             <!-- Zone de sortie -->
+            <!-- Progress bar -->
+            <div id="progressContainer" class="hidden mb-4">
+                <div class="h-1 w-full bg-gray-700 rounded-full overflow-hidden">
+                    <div id="progressBar" class="h-full w-0 bg-purple-500 transition-all duration-300"></div>
+                </div>
+                <p id="progressText" class="text-xs text-gray-400 mt-2 text-right">0%</p>
+            </div>
+            
+            <!-- Output text -->
             <div id="output" class="output-bg rounded-xl p-4 min-h-[100px] text-sm text-gray-300 break-words hidden transition-all duration-300 ease-out"></div>
         </div>
     </div>
@@ -131,6 +140,9 @@
         const uploadFile = async () => {
             const fileInput = document.getElementById('fileInput');
             const outputDiv = document.querySelector('#output');
+            const progressContainer = document.querySelector('#progressContainer');
+            const progressBar = document.querySelector('#progressBar');
+            const progressText = document.querySelector('#progressText');
             const file = fileInput.files[0];
             if (!file) {
                 alert("Please select a file first!");
@@ -139,10 +151,23 @@
             const formData = new FormData();
             formData.append('file', file);
             
-            // Afficher la zone avec animation
+            // Afficher la barre de progression et la zone de sortie
+            progressContainer.classList.remove('hidden');
             outputDiv.classList.remove('hidden');
             outputDiv.classList.add('slide-in');
             outputDiv.innerHTML = "<em>Processing...</em>";
+            
+            // Simuler la progression
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) {
+                    progress = 90;
+                    clearInterval(progressInterval);
+                }
+                progressBar.style.width = `${progress}%`;
+                progressText.textContent = `${Math.round(progress)}%`;
+            }, 500);
             
             try {
                 const response = await fetch('https://transcription-project-91w7.onrender.com/transcribe', {
@@ -153,9 +178,16 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const result = await response.json();
+                // Compléter la barre de progression
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
                 outputDiv.innerText = result.transcription || "Transcription complete!";
             } catch (error) {
                 console.error(error);
+                clearInterval(progressInterval);
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
                 outputDiv.innerText = `Request failed: ${error.message}`;
             }
         };
