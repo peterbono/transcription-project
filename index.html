@@ -102,19 +102,67 @@
     </div>
 
     <script>
-        // Éléments DOM
-        const fileInput = document.querySelector('#fileInput');
+        const uploadFile = async () => {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a file first!");
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+            document.querySelector('#output').innerHTML = "<em>Processing...</em>";
+            try {
+                const response = await fetch('https://transcription-project-91w7.onrender.com/transcribe', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                document.querySelector('#output').innerText = result.transcription || "Transcription complete!";
+            } catch (error) {
+                console.error(error);
+                document.querySelector('#output').innerText = `Request failed: ${error.message}`;
+            }
+        };
+        document.querySelector('#uploadBtn').addEventListener('click', uploadFile);
+
+        // Gestion du drag & drop
         const dropZone = document.querySelector('#dropZone');
         const uploadIcon = document.querySelector('#uploadIcon');
         const fileInfo = document.querySelector('#fileInfo');
         const fileName = document.querySelector('#fileName');
-        const progressContainer = document.querySelector('#progressContainer');
-        const progressBar = document.querySelector('#progressBar');
-        const progressText = document.querySelector('#progressText');
-        const outputDiv = document.querySelector('#output');
-        const button = document.querySelector('#uploadBtn');
 
-        // Gestion de l'upload de fichier
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('border-purple-500');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('border-purple-500');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
+            fileInput.files = e.dataTransfer.files;
+            if (file) {
+                showFileInfo(file);
+            }
+        });
+
+        // Gestion de l'affichage du fichier sélectionné
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -127,8 +175,6 @@
             uploadIcon.classList.add('hidden');
             fileInfo.classList.remove('hidden');
             fileInfo.classList.add('flex');
-            button.disabled = false;
-            button.classList.remove('opacity-50');
         }
 
         function resetFile(e) {
@@ -138,37 +184,7 @@
             uploadIcon.classList.remove('hidden');
             fileInfo.classList.add('hidden');
             fileInfo.classList.remove('flex');
-            progressContainer.classList.add('hidden');
-            progressBar.style.width = '0%';
-            progressText.textContent = '0%';
-            button.disabled = true;
-            button.classList.add('opacity-50');
-        }
-
-        function updateProgress(percent) {
-            progressContainer.classList.remove('hidden');
-            progressBar.style.width = `${percent}%`;
-            progressText.textContent = `${Math.round(percent)}%`;
-        }
-
-        const uploadFile = async () => {
-            const file = fileInput.files[0];
-            if (!file) {
-                outputDiv.innerHTML = '<span class="text-red-400">Veuillez sélectionner un fichier.</span>';
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            button.disabled = true;
-            button.classList.add('opacity-50');
-            outputDiv.innerHTML = '<div class="flex items-center justify-center space-x-2"><div class="animate-spin h-4 w-4 border-2 border-purple-500 rounded-full border-t-transparent"></div><span>Traitement en cours...</span></div>';
-            
-            // Simulation de la progression
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += Math.random() * 15;
+        }om() * 15;
                 if (progress > 90) {
                     progress = 90;
                     clearInterval(progressInterval);
