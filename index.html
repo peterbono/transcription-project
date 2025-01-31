@@ -54,21 +54,19 @@
             </div>
 
             <!-- Zone de dépôt de fichier -->
-            <label for="fileInput" class="block">
-                <div class="file-input-zone rounded-2xl p-6 text-center space-y-4 cursor-pointer transition-all duration-200 hover:bg-white/10 group">
-                    <div class="flex flex-col items-center space-y-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-500 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        <p class="text-sm text-gray-300 group-hover:text-white transition-colors duration-200">Cliquez ou déposez votre fichier MP4 ici</p>
-                        <p class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-200">MP4, MP3, ou WAV acceptés</p>
-                    </div>
-                    <input type="file" 
-                           id="fileInput" 
-                           accept=".mp4,.mp3,.wav"
-                           class="hidden">
+            <div class="file-input-zone rounded-2xl p-6 text-center space-y-4 cursor-pointer transition-all duration-200 hover:bg-white/10 group">
+                <div class="flex flex-col items-center space-y-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-500 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="text-sm text-gray-300 group-hover:text-white transition-colors duration-200">Cliquez ou déposez votre fichier MP4 ici</p>
+                    <p class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-200">MP4, MP3, ou WAV acceptés</p>
                 </div>
-            </label>
+                <input type="file" 
+                       id="fileInput" 
+                       accept=".mp4,.mp3,.wav"
+                       class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            </div>
 
             <!-- Bouton de traduction -->
             <button id="uploadBtn" 
