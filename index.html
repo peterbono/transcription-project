@@ -139,12 +139,9 @@
             const formData = new FormData();
             formData.append('file', file);
             
-            // Afficher la zone de sortie avec animation
+            // Afficher la zone avec animation
             outputDiv.classList.remove('hidden');
-            outputDiv.classList.add('fade-enter');
-            // Force a reflow to ensure the animation plays
-            void outputDiv.offsetWidth;
-            outputDiv.classList.add('fade-enter-active');
+            outputDiv.classList.add('slide-in');
             outputDiv.innerHTML = "<em>Processing...</em>";
             
             try {
@@ -156,14 +153,7 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const result = await response.json();
-                // Animer le changement de contenu
-                outputDiv.style.opacity = '0';
-                outputDiv.style.transform = 'translateY(10px)';
-                await new Promise(resolve => setTimeout(resolve, 200));
                 outputDiv.innerText = result.transcription || "Transcription complete!";
-                outputDiv.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
-                outputDiv.style.opacity = '1';
-                outputDiv.style.transform = 'translateY(0)';
             } catch (error) {
                 console.error(error);
                 outputDiv.innerText = `Request failed: ${error.message}`;
