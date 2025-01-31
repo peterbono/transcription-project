@@ -54,14 +54,32 @@
             </div>
 
             <!-- Zone de dépôt de fichier -->
-            <div class="file-input-zone rounded-2xl p-6 text-center space-y-4 cursor-pointer transition-all duration-200 hover:bg-white/10 group">
-                <div class="flex flex-col items-center space-y-2">
+            <div id="dropZone" class="file-input-zone rounded-2xl p-6 text-center space-y-4 cursor-pointer transition-all duration-200 hover:bg-white/10 group relative">
+                <div id="uploadIcon" class="flex flex-col items-center space-y-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-500 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                     <p class="text-sm text-gray-300 group-hover:text-white transition-colors duration-200">Cliquez ou déposez votre fichier MP4 ici</p>
                     <p class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-200">MP4, MP3, ou WAV acceptés</p>
                 </div>
+                
+                <div id="fileInfo" class="hidden flex-col items-center space-y-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <p class="text-sm text-green-400" id="fileName">fichier.mp4</p>
+                    <button onclick="resetFile(event)" class="text-xs text-red-400 hover:text-red-300 transition-colors duration-200">
+                        Supprimer
+                    </button>
+                </div>
+
+                <div id="progressContainer" class="hidden w-full mt-4">
+                    <div class="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
+                        <div id="progressBar" class="h-full w-0 bg-purple-500 transition-all duration-300"></div>
+                    </div>
+                    <p id="progressText" class="text-xs text-gray-400 mt-2">0%</p>
+                </div>
+
                 <input type="file" 
                        id="fileInput" 
                        accept=".mp4,.mp3,.wav"
@@ -80,11 +98,56 @@
     </div>
 
     <script>
+        // Éléments DOM
+        const fileInput = document.querySelector('#fileInput');
+        const dropZone = document.querySelector('#dropZone');
+        const uploadIcon = document.querySelector('#uploadIcon');
+        const fileInfo = document.querySelector('#fileInfo');
+        const fileName = document.querySelector('#fileName');
+        const progressContainer = document.querySelector('#progressContainer');
+        const progressBar = document.querySelector('#progressBar');
+        const progressText = document.querySelector('#progressText');
+        const outputDiv = document.querySelector('#output');
+        const button = document.querySelector('#uploadBtn');
+
+        // Gestion de l'upload de fichier
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                showFileInfo(file);
+            }
+        });
+
+        function showFileInfo(file) {
+            fileName.textContent = file.name;
+            uploadIcon.classList.add('hidden');
+            fileInfo.classList.remove('hidden');
+            fileInfo.classList.add('flex');
+            button.disabled = false;
+            button.classList.remove('opacity-50');
+        }
+
+        function resetFile(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.value = '';
+            uploadIcon.classList.remove('hidden');
+            fileInfo.classList.add('hidden');
+            fileInfo.classList.remove('flex');
+            progressContainer.classList.add('hidden');
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+            button.disabled = true;
+            button.classList.add('opacity-50');
+        }
+
+        function updateProgress(percent) {
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = `${Math.round(percent)}%`;
+        }
+
         const uploadFile = async () => {
-            const fileInput = document.querySelector('#fileInput');
-            const outputDiv = document.querySelector('#output');
-            const button = document.querySelector('#uploadBtn');
-            
             const file = fileInput.files[0];
             if (!file) {
                 outputDiv.innerHTML = '<span class="text-red-400">Veuillez sélectionner un fichier.</span>';
@@ -94,10 +157,20 @@
             const formData = new FormData();
             formData.append('file', file);
             
-            // Mise à jour UI pendant le chargement
             button.disabled = true;
             button.classList.add('opacity-50');
             outputDiv.innerHTML = '<div class="flex items-center justify-center space-x-2"><div class="animate-spin h-4 w-4 border-2 border-purple-500 rounded-full border-t-transparent"></div><span>Traitement en cours...</span></div>';
+            
+            // Simulation de la progression
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) {
+                    progress = 90;
+                    clearInterval(progressInterval);
+                }
+                updateProgress(progress);
+            }, 500);
             
             try {
                 const response = await fetch('https://transcription-project-91w7.onrender.com/transcribe', {
@@ -109,11 +182,16 @@
                     throw new Error(`Erreur HTTP: ${response.status}`);
                 }
                 
+                clearInterval(progressInterval);
+                updateProgress(100);
+                
                 const result = await response.json();
                 outputDiv.innerText = result.transcription || "Transcription terminée !";
             } catch (error) {
                 console.error(error);
                 outputDiv.innerHTML = `<span class="text-red-400">Erreur: ${error.message}</span>`;
+                clearInterval(progressInterval);
+                updateProgress(0);
             } finally {
                 button.disabled = false;
                 button.classList.remove('opacity-50');
@@ -122,10 +200,7 @@
 
         document.querySelector('#uploadBtn').addEventListener('click', uploadFile);
 
-        // Animation de la zone de dépôt
-        const fileInput = document.querySelector('#fileInput');
-        const dropZone = document.querySelector('.file-input-zone');
-
+        // Gestion du drag & drop
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, (e) => {
                 e.preventDefault();
@@ -146,7 +221,11 @@
         });
 
         dropZone.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
             fileInput.files = e.dataTransfer.files;
+            if (file) {
+                showFileInfo(file);
+            }
         });
     </script>
 </body>
